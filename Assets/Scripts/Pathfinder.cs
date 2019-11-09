@@ -6,6 +6,8 @@ public class Pathfinder : MonoBehaviour
 {
     public float cellSize = 1f;
 
+    public LocationSelector locationSelector;
+
     TileGraph graph;
 
     GameObject ground;
@@ -21,7 +23,11 @@ public class Pathfinder : MonoBehaviour
 
         MakeGraph();
 
-        // TEST: Force the test path to be drawn
+        // Plug-in user interactions
+        locationSelector.OnStartLocationSelected += HandleStartLocationSelected;
+        locationSelector.OnEndLocationSelected += HandleEndLocationSelected;
+
+        // Initialize some starting values
         graph.Start = Vector2Int.zero;
         graph.End = Vector2Int.one;
     }
@@ -32,13 +38,11 @@ public class Pathfinder : MonoBehaviour
     void MakeGraph()
     {        
         Bounds bounds = ground.GetComponent<Renderer>().bounds;
-
         Vector3 xzBoundsCenter = bounds.center + new Vector3(0, bounds.extents.y, 0);
-        Vector3 gridTopLeft = xzBoundsCenter + new Vector3(-bounds.extents.x, 0, bounds.extents.z);        
-
-        Vector2 gridArea = new Vector2(bounds.size.x, bounds.size.z);
-        int maxRowCount = (int)Mathf.Floor(gridArea.y / cellSize);
-        int maxColCount = (int)Mathf.Floor(gridArea.x / cellSize);
+        Vector3 gridTopLeft = xzBoundsCenter + new Vector3(-bounds.extents.x, 0, bounds.extents.z);
+        
+        int maxRowCount = (int)Mathf.Floor(bounds.size.z / cellSize);
+        int maxColCount = (int)Mathf.Floor(bounds.size.x / cellSize);
 
         Tile[,] grid = new Tile[maxRowCount, maxColCount];
 
@@ -85,6 +89,47 @@ public class Pathfinder : MonoBehaviour
         graph = new TileGraph(grid);
     }
 
+    Vector2Int? TransformWorldToGridPoint(Vector3 point)
+    {
+        Bounds bounds = ground.GetComponent<Renderer>().bounds;
+        Vector3 xzBoundsCenter = bounds.center + new Vector3(0, bounds.extents.y, 0);
+        Vector3 gridTopLeft = xzBoundsCenter + new Vector3(-bounds.extents.x, 0, bounds.extents.z);
+
+        // Translate with respect to new origin
+        Vector3 locationWithRespectToBounds = point - gridTopLeft;
+        
+        // Scale and flip in order to obtain point in grid space with rows increasing downward, columns increasing rightward
+        Vector2 locationInGridSpace = new Vector2(
+            -locationWithRespectToBounds.z * graph.RowCount / bounds.size.z,
+            locationWithRespectToBounds.x * graph.ColCount / bounds.size.x
+            );
+
+        // Truncate to a discrete grid coordinate
+        Vector2Int index = new Vector2Int((int)Mathf.Floor(locationInGridSpace.x), (int)Mathf.Floor(locationInGridSpace.y));
+
+        return  index.x >= 0 && index.x < graph.RowCount &&
+                index.y >= 0 && index.y < graph.ColCount
+                ? new Vector2Int?(index) : null;
+    }
+
+    void HandleStartLocationSelected(Vector3 location)
+    {
+        Vector2Int? index = TransformWorldToGridPoint(location);
+        if (index.HasValue)
+        {
+            graph.Start = index.GetValueOrDefault();
+        }
+    }
+
+    void HandleEndLocationSelected(Vector3 location)
+    {
+        Vector2Int? index = TransformWorldToGridPoint(location);
+        if (index.HasValue)
+        {
+            graph.End = index.GetValueOrDefault();
+        }
+    }
+
     // TODO: Debug only
     private void OnDrawGizmos()
     {
@@ -104,9 +149,6 @@ public class Pathfinder : MonoBehaviour
             {
                 Debug.DrawLine(path[i - 1].WorldRegion, path[i].WorldRegion, Color.blue, 300f);
             }
-
-            graph.Start = null;
-            graph.End = null;
         }
     }
 }
