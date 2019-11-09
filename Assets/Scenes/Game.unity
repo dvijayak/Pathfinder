@@ -380,7 +380,7 @@ GameObject:
   - component: {fileID: 826708395}
   m_Layer: 0
   m_Name: World
-  m_TagString: Untagged
+  m_TagString: World
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -412,8 +412,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fae546b2359ce4438f8a943bd81b849, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cellSize: 0.25
+  cellSize: 0.5
   locationSelector: {fileID: 534669907}
+  pathStartPrefab: {fileID: 633033538873604742, guid: 5cf855ab2157ae34a80d78f89fc178ce,
+    type: 3}
+  pathMidPrefab: {fileID: 1349268519816640291, guid: 56dddbef4126fcb4a8f6af3293f51eda,
+    type: 3}
+  pathEndPrefab: {fileID: 368276376100289025, guid: c20a41832acaa57469c4bc75d4a5dd8e,
+    type: 3}
+  pathObjectTag: PathObject
 --- !u!1 &1077619955
 GameObject:
   m_ObjectHideFlags: 0

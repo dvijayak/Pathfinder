@@ -191,19 +191,35 @@ public class TileGraph
 
         // TODO
 
-        // // TEST
-        // int cellCount = Random.Range(5, 10);
-        // for (int i = 0; i < cellCount; i++)
-        // {
-        //    int r = (int)Random.Range(0, RowCount);
-        //    int c = (int)Random.Range(0, ColCount);
-        //    path.Add(Tile(r, c));
-        // }
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        Queue<Vector2Int> frontier = new Queue<Vector2Int>();
 
-        // return path;
+        // Init
+        frontier.Enqueue(from);
+        visited.Add(from);
 
-        // return Neighbors(new Vector2Int((int)Random.Range(0, RowCount), (int)Random.Range(0, ColCount)));
-        return Neighbors(from);
+        // Go find your path!
+        while (frontier.Count > 0)
+        {
+            Vector2Int index = frontier.Dequeue();
+            path.Add(Tile(index));
+
+            if (index == to)
+            {
+                break;
+            }
+
+            foreach (Tile neighbor in UnobstructedNeighbors(index))
+            {
+                if (!visited.Contains(neighbor.Index))
+                {
+                    frontier.Enqueue(neighbor.Index);
+                    visited.Add(neighbor.Index);
+                }
+            }
+        }
+
+        return path;
     }
 
     public void DrawDebug() {

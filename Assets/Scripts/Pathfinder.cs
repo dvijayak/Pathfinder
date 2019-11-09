@@ -8,6 +8,13 @@ public class Pathfinder : MonoBehaviour
 
     public LocationSelector locationSelector;
 
+    // Used for rendering the path
+    public GameObject pathStartPrefab;
+    public GameObject pathMidPrefab;
+    public GameObject pathEndPrefab;
+
+    public string pathObjectTag = "PathObject";
+
     TileGraph graph;
 
     GameObject ground;
@@ -137,18 +144,47 @@ public class Pathfinder : MonoBehaviour
             graph.DrawDebug();
     }
 
+    GameObject ConstructPathObject(GameObject prefab, Tile tile)
+    {
+        GameObject pathObject = Instantiate(prefab);
+        pathObject.transform.position = new Vector3(
+            tile.WorldRegion.x,
+            pathObject.transform.position.y, // retain the prefab's Y component - we don't want to make any assumption on the height of the model
+            tile.WorldRegion.z
+            );
+        pathObject.transform.SetParent(transform);
+
+        return pathObject;
+    }
+
     // Update is called once per frame
     void Update()
     {
         if (graph.Start.HasValue && graph.End.HasValue)
-        {            
-            List<Tile> path = graph.ComputePath(graph.Start.GetValueOrDefault(), graph.End.GetValueOrDefault());
+        {
+            // TODO: implement caching system...only if the newly generated path has changed should we clear and redraw
             
-            // TODO: Draw better path, not just a stupid debug line            
-            for (int i = 1; i < path.Count; i++)
+            // Clear existing path
+            foreach (GameObject pathObject in GameObject.FindGameObjectsWithTag(pathObjectTag))
             {
-                Debug.DrawLine(path[i - 1].WorldRegion, path[i].WorldRegion, Color.blue, 300f);
+                Destroy(pathObject);
             }
+
+            // Compute new path with latest parameters and draw it
+            List<Tile> path = graph.ComputePath(graph.Start.GetValueOrDefault(), graph.End.GetValueOrDefault());
+            if (path.Count > 1)
+            {
+                ConstructPathObject(pathStartPrefab, path[0]);
+
+                for (int i = 1; i < path.Count-1; i++)
+                {
+                    ConstructPathObject(pathMidPrefab, path[i]);
+                }
+
+                ConstructPathObject(pathEndPrefab, path[path.Count - 1]);
+            }
+
+            graph.Start = null;
         }
     }
 }
