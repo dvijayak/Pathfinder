@@ -5,6 +5,7 @@ using UnityEngine;
 public class Pathfinder : MonoBehaviour
 {
     public float cellSize = 1f;
+    public HeuristicToEndStrategy endGoalHeuristic = HeuristicToEndStrategy.ManhattanDistance;
 
     public LocationSelector locationSelector;
 
@@ -160,6 +161,8 @@ public class Pathfinder : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        graph.EndGoalStrategy = endGoalHeuristic;
+
         if (graph.Start.HasValue && graph.End.HasValue)
         {
             // TODO: implement caching system...only if the newly generated path has changed should we clear and redraw

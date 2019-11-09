@@ -2,6 +2,7 @@
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum TileType
 {
@@ -36,8 +37,14 @@ public class UnitarianMovementCost : IMovementCostComputer
 
     public float CostOfMovement(TileType from, TileType to)
     {
-        return 1f * Random.value; // TODO: To remove
+        return 1f;
     }
+}
+
+public enum HeuristicToEndStrategy
+{
+    ManhattanDistance,
+    EuclideanDistance
 }
 
 public class Tile
@@ -110,6 +117,8 @@ public class TileGraph
     public int TileCount { get { return grid.Length; } }
 
     IMovementCostComputer movementCostComputer;
+
+    public HeuristicToEndStrategy EndGoalStrategy { get; set; } = HeuristicToEndStrategy.EuclideanDistance;
 
     Path lastComputedPath;
 
@@ -184,8 +193,15 @@ public class TileGraph
             throw new UnityException("End tile is expected to be set");
         }
 
-        // Manhattan distance
-        return Mathf.Abs(End.GetValueOrDefault().x - from.x) + Mathf.Abs(End.GetValueOrDefault().y - from.y);
+        switch(EndGoalStrategy)
+        {
+            case HeuristicToEndStrategy.ManhattanDistance:
+                return Mathf.Abs(End.GetValueOrDefault().x - from.x) + Mathf.Abs(End.GetValueOrDefault().y - from.y);
+            case HeuristicToEndStrategy.EuclideanDistance:
+                return Vector2Int.Distance(from, End.GetValueOrDefault());
+            default:
+                throw new UnityException($"No valid end goal heuristic strategy was specified: {EndGoalStrategy}");
+        }
     }
 
     // Represents the cumulative cost of pathing from a source tile to the `index` tile
@@ -212,7 +228,12 @@ public class TileGraph
 
         public override bool Equals(object obj)
         {
-            return false;
+            CumulativeCostNode other = obj as CumulativeCostNode;
+            if (other == null)
+            {
+                return false;
+            }
+            return index == other.index;
         }
 
         public override int GetHashCode()
@@ -235,39 +256,60 @@ public class TileGraph
         List<Tile> pathOfExploration = new List<Tile>();
 
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-        SortedSet<CumulativeCostNode> frontier = new SortedSet<CumulativeCostNode>(new CompareTilesForShortestCost());
+        SortedDictionary<float, Queue<Vector2Int>> frontier = new SortedDictionary<float, Queue<Vector2Int>>(); // a priority queue of tile node indices sorted by their cumulative cost starting from the `from` node
+
         Hashtable cameFrom = new Hashtable(); // dest => source
 
         // Init
-        frontier.Add(new CumulativeCostNode(from, 0));
+        frontier.Add(0, new Queue<Vector2Int>(new Vector2Int[] {from}));
         visited.Add(from);
         cameFrom.Add(from, null);
 
         // Go find your path!
         while (frontier.Count > 0)
         {
-            CumulativeCostNode node = frontier.Min;
-            pathOfExploration.Add(Tile(node.index));
+            float costSoFar = frontier.Keys.First();
+            Queue<Vector2Int> queue = frontier[costSoFar];
+            Vector2Int index = queue.Peek();
 
-            if (node.index == to)
+            pathOfExploration.Add(Tile(index));
+
+            if (index == to)
             {
                 break;
             }
 
-            frontier.Remove(node);
+            // Pop from the priority queue
+            queue.Dequeue();
+            if (queue.Count == 0)
+            {
+                frontier.Remove(costSoFar);
+            }
 
-            foreach (Tile neighbor in UnobstructedNeighbors(node.index))
+            // Explore neighbors
+            foreach (Tile neighbor in UnobstructedNeighbors(index))
             {
                 if (!visited.Contains(neighbor.Index))
-                {                    
-                    frontier.Add(new CumulativeCostNode(neighbor.Index, node.cost + 
-                    CostOfMovement(node.index, neighbor.Index) + // minimize movement cost
-                    HeuristicToEnd(neighbor.Index) // minimize heuristic to goal
-                    ));
+                {
+                    float cumulativeCost = costSoFar +
+                        CostOfMovement(index, neighbor.Index) + // minimize movement cost
+                        HeuristicToEnd(neighbor.Index) // minimize heuristic to goal
+                        ;
+
+                    Queue<Vector2Int> existingQueueForCost;
+                    if (frontier.TryGetValue(cumulativeCost, out existingQueueForCost))
+                    {
+                        existingQueueForCost.Enqueue(neighbor.Index);
+                    }
+                    else
+                    {
+                        frontier.Add(cumulativeCost, new Queue<Vector2Int>(new Vector2Int[] {neighbor.Index}));
+                    }
+
                     visited.Add(neighbor.Index);
 
                     // Keep track of where we came from - this is how we trace back the "best" chosen path
-                    cameFrom.Add(neighbor.Index, Tile(node.index));
+                    cameFrom.Add(neighbor.Index, Tile(index));
                 }
             }
         }
