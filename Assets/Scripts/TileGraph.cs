@@ -41,12 +41,12 @@ public class UnitarianMovementCost : IMovementCostComputer
 
 public class Tile
 {
-    public Vector2 Index { get; }
+    public Vector2Int Index { get; }
     public TileType Type { get; }
     // TODO: World region thingy...for now, just store the point
     public Vector3 WorldRegion { get; }
 
-    public Tile(Vector2 index, TileType type, Vector3 region)
+    public Tile(Vector2Int index, TileType type, Vector3 region)
     {
         Index = index;
         Type = type;
@@ -57,8 +57,8 @@ public class Tile
 public class TileGraph
 {
     Tile startTile;
-    Vector2? _Start;
-    public Vector2? Start
+    Vector2Int? _Start;
+    public Vector2Int? Start
     {
         get
         {
@@ -80,8 +80,8 @@ public class TileGraph
     }
 
     Tile endTile;
-    Vector2? _End;
-    public Vector2? End
+    Vector2Int? _End;
+    public Vector2Int? End
     {
         get
         {
@@ -122,7 +122,7 @@ public class TileGraph
         this.movementCostComputer = movementCostComputer;
     }
 
-    public Tile Tile(Vector2 index)
+    public Tile Tile(Vector2Int index)
     {
         return grid[(int)index.x, (int)index.y];
     }
@@ -132,25 +132,49 @@ public class TileGraph
         return grid[row, col];
     }
 
-    List<Tile> Neighbors(Vector2 index)
+    List<Tile> Neighbors(Vector2Int index)
     {
-        // TODO
-        return new List<Tile>();
+        int r = index.x;
+        int c = index.y;
+
+        List<Tile> neighbors = new List<Tile>(4); // only possible neighbors are N, S, E, W
+
+        Vector2Int[] candidates = new Vector2Int[]
+        {
+            new Vector2Int(r - 1, c), // north
+            new Vector2Int(r, c + 1), // east
+            new Vector2Int(r + 1, c), // south
+            new Vector2Int(r, c - 1), // west
+        };
+
+        // Remember: x is row index, y is col index
+        foreach (Vector2Int candidate in candidates)
+        {
+            if (
+                candidate.x >= 0 && candidate.x < grid.GetLength(0) &&
+                candidate.y >= 0 && candidate.y < grid.GetLength(1)
+            ) // bounds check
+            {
+                neighbors.Add(Tile(candidate));
+            }
+        }
+
+        return neighbors;
     }
 
-    List<Tile> UnobstructedNeighbors(Vector2 index)
+    List<Tile> UnobstructedNeighbors(Vector2Int index)
     {
         List<Tile> neighbors = Neighbors(index);
         neighbors.RemoveAll(tile => tile.Type == TileType.Obstacle);
         return neighbors;
     }
 
-    float CostOfMovement(Vector2 from, Vector2 to)
+    float CostOfMovement(Vector2Int from, Vector2Int to)
     {
         return movementCostComputer.CostOfMovement(Tile(from).Type, Tile(to).Type);
     }
 
-    float HeuristicToEnd(Vector2 from)
+    float HeuristicToEnd(Vector2Int from)
     {
         if (!End.HasValue)
         {
@@ -161,21 +185,33 @@ public class TileGraph
         return Mathf.Abs(End.GetValueOrDefault().x - from.x) + Mathf.Abs(End.GetValueOrDefault().y - from.y);
     }
 
-    public List<Tile> ComputePath(Vector2 from, Vector2 to)
+    public List<Tile> ComputePath(Vector2Int from, Vector2Int to)
     {
         List<Tile> path = new List<Tile>();
 
         // TODO
 
-        // TEST
-        int cellCount = Random.Range(5, 10);
-        for (int i = 0; i < cellCount; i++)
-        {
-           int r = (int)Random.Range(0, RowCount);
-           int c = (int)Random.Range(0, ColCount);
-           path.Add(Tile(r, c));
-        }
+        // // TEST
+        // int cellCount = Random.Range(5, 10);
+        // for (int i = 0; i < cellCount; i++)
+        // {
+        //    int r = (int)Random.Range(0, RowCount);
+        //    int c = (int)Random.Range(0, ColCount);
+        //    path.Add(Tile(r, c));
+        // }
 
-        return path;
+        // return path;
+
+        // return Neighbors(new Vector2Int((int)Random.Range(0, RowCount), (int)Random.Range(0, ColCount)));
+        return Neighbors(from);
+    }
+
+    public void DrawDebug() {
+        float cellSize = 0.1f; //Mathf.Abs(grid[0,0].WorldRegion.x - grid[1,0].WorldRegion.x);
+        foreach (Tile tile in grid)
+        {
+            Gizmos.color = tile.Type == TileType.Obstacle ? Color.red : Color.yellow;
+            Gizmos.DrawSphere(tile.WorldRegion, cellSize);
+        }
     }
 }

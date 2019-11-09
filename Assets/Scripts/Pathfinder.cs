@@ -10,8 +10,6 @@ public class Pathfinder : MonoBehaviour
 
     GameObject ground;
 
-    Tile[,] grid;
-
     // Start is called before the first frame update
     void Start()
     {
@@ -24,16 +22,15 @@ public class Pathfinder : MonoBehaviour
         MakeGraph();
 
         // TEST: Force the test path to be drawn
-        graph.Start = Vector2.up;
-        graph.End = Vector2.one;
+        graph.Start = Vector2Int.zero;
+        graph.End = Vector2Int.one;
     }
 
     //
     // Summary:
     // Divide the x-z plane of the ground into a grid given the cell size
     void MakeGraph()
-    {
-        // TODO
+    {        
         Bounds bounds = ground.GetComponent<Renderer>().bounds;
 
         Vector3 xzBoundsCenter = bounds.center + new Vector3(0, bounds.extents.y, 0);
@@ -81,27 +78,18 @@ public class Pathfinder : MonoBehaviour
                 }
 
                 // Make tile
-                grid[r, c] = new Tile(new Vector2(r, c), tileType, worldPoint);
+                grid[r, c] = new Tile(new Vector2Int(r, c), tileType, worldPoint);
             }
         }
 
         graph = new TileGraph(grid);
-
-        // TODO: Remove after debug
-        this.grid = grid;
     }
 
     // TODO: Debug only
     private void OnDrawGizmos()
     {
-        if (this.grid != null)
-        {            
-            foreach (Tile tile in this.grid)
-            {
-                Gizmos.color = tile.Type == TileType.Obstacle ? Color.red : Color.yellow;
-                Gizmos.DrawSphere(tile.WorldRegion, cellSize);
-            }            
-        }        
+        if (graph != null)
+            graph.DrawDebug();
     }
 
     // Update is called once per frame
