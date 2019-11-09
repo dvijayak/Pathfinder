@@ -167,14 +167,14 @@ public class TileGraph
 
         // TODO
 
-        //// TEST
-        //int cellCount = Random.Range(0, TileCount);
-        //for (int i = 0; i < cellCount; i++)
-        //{
-        //    int r = (int)Random.Range(0, RowCount);
-        //    int c = (int)Random.Range(0, ColCount);
-        //    path.Add(Tile(r, c));
-        //}
+        // TEST
+        int cellCount = Random.Range(5, 10);
+        for (int i = 0; i < cellCount; i++)
+        {
+           int r = (int)Random.Range(0, RowCount);
+           int c = (int)Random.Range(0, ColCount);
+           path.Add(Tile(r, c));
+        }
 
         return path;
     }

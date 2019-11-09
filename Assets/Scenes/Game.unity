@@ -382,7 +382,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fae546b2359ce4438f8a943bd81b849, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cellSize: 1
+  cellSize: 0.25
 --- !u!1 &1077619955
 GameObject:
   m_ObjectHideFlags: 0

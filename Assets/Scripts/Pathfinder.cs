@@ -40,38 +40,47 @@ public class Pathfinder : MonoBehaviour
         Vector3 gridTopLeft = xzBoundsCenter + new Vector3(-bounds.extents.x, 0, bounds.extents.z);        
 
         Vector2 gridArea = new Vector2(bounds.size.x, bounds.size.z);
-        int maxRowCount = (int)Mathf.Floor(gridArea.x / cellSize);
-        int maxColCount = (int)Mathf.Floor(gridArea.y / cellSize);
+        int maxRowCount = (int)Mathf.Floor(gridArea.y / cellSize);
+        int maxColCount = (int)Mathf.Floor(gridArea.x / cellSize);
 
         Tile[,] grid = new Tile[maxRowCount, maxColCount];
 
+        Vector3 offsetToCenter = new Vector3(cellSize/2, 0, -cellSize/2);
         for (int r = 0; r < grid.GetLength(0); r++)
         {
             for (int c = 0; c < grid.GetLength(1); c++)
             {
                 // World space point that corresponds to the center of the tile
-                Vector3 worldPoint = gridTopLeft + new Vector3(c + cellSize/2, 0, -(r + cellSize/2));
+                Vector3 worldPoint = gridTopLeft + new Vector3(c * cellSize, 0, -(r * cellSize)) + offsetToCenter;
 
                 // Determine overlapping obstacles
                 TileType tileType = TileType.Free;
                 Collider[] colliders = Physics.OverlapSphere(worldPoint, cellSize);
                 if (colliders != null && colliders.Length > 0)
                 {
-                    bool foundOurself = false;
-                    for (int i = 0; i < colliders.Length; i++)
-                    {
-                        if (colliders[i] == ground.GetComponent<Collider>())
+                    bool foundCollision = true;
+
+                    // Check for collision with someone other than ourselves
+                    Collider ourCollider = ground.GetComponent<Collider>();
+                    if (ourCollider != null) {
+                        foundCollision = false;
+                        for (int i = 0; i < colliders.Length; i++)
                         {
-                            foundOurself = true;
-                            break;
+                            if (colliders[i] != ourCollider)
+                            {
+                                foundCollision = true;
+                                break;
+                            }
                         }
-                    }
-                    if (!foundOurself)
+                    } // if we don't have a collider, we are definitely colliding with something else
+
+                    if (foundCollision)
                     {
                         tileType = TileType.Obstacle;
-                    }                    
+                    }
                 }
 
+                // Make tile
                 grid[r, c] = new Tile(new Vector2(r, c), tileType, worldPoint);
             }
         }
@@ -87,7 +96,7 @@ public class Pathfinder : MonoBehaviour
     {
         if (this.grid != null)
         {            
-            foreach (Tile tile in grid)
+            foreach (Tile tile in this.grid)
             {
                 Gizmos.color = tile.Type == TileType.Obstacle ? Color.red : Color.yellow;
                 Gizmos.DrawSphere(tile.WorldRegion, cellSize);
