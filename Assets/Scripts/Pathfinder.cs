@@ -185,6 +185,7 @@ public class Pathfinder : MonoBehaviour
             }
 
             graph.Start = null;
+            graph.End = null;
         }
     }
 }

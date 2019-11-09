@@ -185,35 +185,79 @@ public class TileGraph
         return Mathf.Abs(End.GetValueOrDefault().x - from.x) + Mathf.Abs(End.GetValueOrDefault().y - from.y);
     }
 
+    // Represents the cumulative cost of pathing from a source tile to the `index` tile
+    class CumulativeCostNode
+    {
+        public Vector2Int index;
+        public float cost;
+
+        public CumulativeCostNode(Vector2Int index, float cost)
+        {
+            this.index = index;
+            this.cost = cost;
+        }
+
+        public static bool operator == (CumulativeCostNode a, CumulativeCostNode b)
+        {
+            return a.index == b.index;
+        }
+
+        public static bool operator != (CumulativeCostNode a, CumulativeCostNode b)
+        {
+            return a.index != b.index;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return index.GetHashCode();
+        }
+    }
+
+    class CompareTilesForShortestCost : Comparer<CumulativeCostNode>
+    {
+        public override int Compare(CumulativeCostNode a, CumulativeCostNode b)
+        {
+            return a.cost.CompareTo(b.cost);
+        }
+    }
+
     public List<Tile> ComputePath(Vector2Int from, Vector2Int to)
     {
         List<Tile> path = new List<Tile>();
 
-        // TODO
-
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-        Queue<Vector2Int> frontier = new Queue<Vector2Int>();
+        SortedSet<CumulativeCostNode> frontier = new SortedSet<CumulativeCostNode>(new CompareTilesForShortestCost());
 
         // Init
-        frontier.Enqueue(from);
+        frontier.Add(new CumulativeCostNode(from, 0));
         visited.Add(from);
 
         // Go find your path!
         while (frontier.Count > 0)
         {
-            Vector2Int index = frontier.Dequeue();
-            path.Add(Tile(index));
+            CumulativeCostNode node = frontier.Min;
+            path.Add(Tile(node.index));
 
-            if (index == to)
+            if (node.index == to)
             {
                 break;
             }
 
-            foreach (Tile neighbor in UnobstructedNeighbors(index))
+            frontier.Remove(node);
+
+            foreach (Tile neighbor in UnobstructedNeighbors(node.index))
             {
                 if (!visited.Contains(neighbor.Index))
-                {
-                    frontier.Enqueue(neighbor.Index);
+                {                    
+                    frontier.Add(new CumulativeCostNode(neighbor.Index, node.cost + 
+                    (CostOfMovement(node.index, neighbor.Index) * Random.value) +
+                    HeuristicToEnd(neighbor.Index)
+                    ));
                     visited.Add(neighbor.Index);
                 }
             }
