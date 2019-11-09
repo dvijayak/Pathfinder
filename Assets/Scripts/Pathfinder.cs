@@ -63,7 +63,7 @@ public class Pathfinder : MonoBehaviour
 
                 // Determine overlapping obstacles
                 TileType tileType = TileType.Free;
-                Collider[] colliders = Physics.OverlapSphere(worldPoint, cellSize);
+                Collider[] colliders = Physics.OverlapSphere(worldPoint, cellSize/4);
                 if (colliders != null && colliders.Length > 0)
                 {
                     bool foundCollision = true;
@@ -171,17 +171,24 @@ public class Pathfinder : MonoBehaviour
             }
 
             // Compute new path with latest parameters and draw it
-            List<Tile> path = graph.ComputePath(graph.Start.GetValueOrDefault(), graph.End.GetValueOrDefault());
-            if (path.Count > 1)
+            TileGraph.Path path = graph.ComputePath(graph.Start.GetValueOrDefault(), graph.End.GetValueOrDefault());
+            if (path.Exists)
             {
-                ConstructPathObject(pathStartPrefab, path[0]);
+                List<Tile> bestPath = path.BestPath;
 
-                for (int i = 1; i < path.Count-1; i++)
+                ConstructPathObject(pathStartPrefab, bestPath[0]);
+
+                for (int i = 1; i < bestPath.Count-1; i++)
                 {
-                    ConstructPathObject(pathMidPrefab, path[i]);
+                    ConstructPathObject(pathMidPrefab, bestPath[i]);
                 }
 
-                ConstructPathObject(pathEndPrefab, path[path.Count - 1]);
+                ConstructPathObject(pathEndPrefab, bestPath[bestPath.Count - 1]);
+            }
+            else
+            {
+                ConstructPathObject(pathStartPrefab, path.Start);
+                ConstructPathObject(pathEndPrefab, path.End);
             }
 
             graph.Start = null;

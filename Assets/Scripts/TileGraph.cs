@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -35,7 +36,7 @@ public class UnitarianMovementCost : IMovementCostComputer
 
     public float CostOfMovement(TileType from, TileType to)
     {
-        return 1f;
+        return 1f * Random.value; // TODO: To remove
     }
 }
 
@@ -109,6 +110,8 @@ public class TileGraph
     public int TileCount { get { return grid.Length; } }
 
     IMovementCostComputer movementCostComputer;
+
+    Path lastComputedPath;
 
     public TileGraph(Tile[,] grid)
     {
@@ -226,22 +229,25 @@ public class TileGraph
         }
     }
 
-    public List<Tile> ComputePath(Vector2Int from, Vector2Int to)
+    public Path ComputePath(Vector2Int from, Vector2Int to)
     {
-        List<Tile> path = new List<Tile>();
+        List<Tile> bestPath = new List<Tile>(); // if this never gets filled, it means there is no path between `from` and `to`
+        List<Tile> pathOfExploration = new List<Tile>();
 
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
         SortedSet<CumulativeCostNode> frontier = new SortedSet<CumulativeCostNode>(new CompareTilesForShortestCost());
+        Hashtable cameFrom = new Hashtable(); // dest => source
 
         // Init
         frontier.Add(new CumulativeCostNode(from, 0));
         visited.Add(from);
+        cameFrom.Add(from, null);
 
         // Go find your path!
         while (frontier.Count > 0)
         {
             CumulativeCostNode node = frontier.Min;
-            path.Add(Tile(node.index));
+            pathOfExploration.Add(Tile(node.index));
 
             if (node.index == to)
             {
@@ -255,15 +261,110 @@ public class TileGraph
                 if (!visited.Contains(neighbor.Index))
                 {                    
                     frontier.Add(new CumulativeCostNode(neighbor.Index, node.cost + 
-                    (CostOfMovement(node.index, neighbor.Index) * Random.value) +
-                    HeuristicToEnd(neighbor.Index)
+                    CostOfMovement(node.index, neighbor.Index) + // minimize movement cost
+                    HeuristicToEnd(neighbor.Index) // minimize heuristic to goal
                     ));
                     visited.Add(neighbor.Index);
+
+                    // Keep track of where we came from - this is how we trace back the "best" chosen path
+                    cameFrom.Add(neighbor.Index, Tile(node.index));
                 }
             }
         }
 
-        return path;
+        // Retrace chosen path by following the breadcrumbs
+        if (cameFrom.ContainsKey(to)) // we should have reached the destination in order to compute a path
+        {
+            Vector2Int index = to; // init
+            while (true)
+            {
+                bestPath.Add(Tile(index));
+
+                Tile next = cameFrom[index] as Tile;
+                if (next == null)
+                {
+                    break;
+                }
+                index = next.Index;
+            }
+            
+            bestPath.Reverse();
+        }
+
+
+        Path computedPath = new Path(Tile(from), Tile(to), bestPath, pathOfExploration);
+        
+        // TODO: How to cache?
+
+        return computedPath;
+    }
+
+    public class Path
+    {
+        Tile _start;
+        public Tile Start { get { return _start; } }
+
+        Tile _end;
+        public Tile End { get { return _end; } }
+        
+        // Note: the first and last nodes of the best path don't HAVE to 
+        // correspond to the Start and End nodes. This can happen when
+        // Start or End are unreachable.
+        List<Tile> _bestPath;
+        public List<Tile> BestPath { get { return _bestPath; } }
+
+        // The "journey" the algorithm, in order of node encounter
+        List<Tile> _exploredSpace;
+        public List<Tile> ExploredSpace { get { return _exploredSpace; } }
+
+        public bool Exists { get { return _bestPath.Count > 0; } }
+
+        public Path(Tile start, Tile end, List<Tile> bestPath, List<Tile> journey)
+        {
+            _start = start;
+            _end = end;
+            _bestPath = bestPath;
+            _exploredSpace = journey;
+        }
+
+        // Concatenate hashCode of all tile indices
+        public override int GetHashCode()
+        {
+            StringBuilder hashCodeStr = new StringBuilder($"{_start.Index},{_end.Index}", 100); // initialize with high enough capacity
+            foreach (Tile tile in _bestPath)
+            {
+                hashCodeStr.Append($",{tile.Index}");
+            }
+            return hashCodeStr.ToString().GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            Path other = obj as Path;
+            if (other == null)
+            {
+                return false;
+            }
+
+            if (_start.Index == other._start.Index && _end.Index == other._end.Index)
+            {
+                // Ensure computed best path is the same
+                if (_bestPath.Count == other._bestPath.Count)
+                {
+                    for (int i = 0; i < _bestPath.Count; i++)
+                    {
+                        if (_bestPath[i].Index != other._bestPath[i].Index)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     public void DrawDebug() {
