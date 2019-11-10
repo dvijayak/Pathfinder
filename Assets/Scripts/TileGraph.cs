@@ -204,52 +204,6 @@ public class TileGraph
         }
     }
 
-    // Represents the cumulative cost of pathing from a source tile to the `index` tile
-    class CumulativeCostNode
-    {
-        public Vector2Int index;
-        public float cost;
-
-        public CumulativeCostNode(Vector2Int index, float cost)
-        {
-            this.index = index;
-            this.cost = cost;
-        }
-
-        public static bool operator == (CumulativeCostNode a, CumulativeCostNode b)
-        {
-            return a.index == b.index;
-        }
-
-        public static bool operator != (CumulativeCostNode a, CumulativeCostNode b)
-        {
-            return a.index != b.index;
-        }
-
-        public override bool Equals(object obj)
-        {
-            CumulativeCostNode other = obj as CumulativeCostNode;
-            if (other == null)
-            {
-                return false;
-            }
-            return index == other.index;
-        }
-
-        public override int GetHashCode()
-        {
-            return index.GetHashCode();
-        }
-    }
-
-    class CompareTilesForShortestCost : Comparer<CumulativeCostNode>
-    {
-        public override int Compare(CumulativeCostNode a, CumulativeCostNode b)
-        {
-            return a.cost.CompareTo(b.cost);
-        }
-    }
-
     public Path ComputePath(Vector2Int from, Vector2Int to)
     {
         List<Tile> bestPath = new List<Tile>(); // if this never gets filled, it means there is no path between `from` and `to`
