@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Pathfinder : MonoBehaviour
 {
+    [Range(0.05f,1)]
     public float cellSize = 1f;
     public HeuristicToEndStrategy endGoalHeuristic = HeuristicToEndStrategy.ManhattanDistance;
 
