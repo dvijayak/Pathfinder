@@ -76,3 +76,6 @@ There are many more aspects of pathfinding that I will be exploring.
 - Move a 3D object along a computed path.
 - Add a new heuristic function: Precomputed shortest path distance to the end goal.
 - Smoothly move a 3D object along a computed path, even when the path looks jagged and ugly.
+- Increase real-time dynamism. Make every change result in "refreshing" the tile graph OR simply re-running the algorithm. For ex: move obstacles, change cell size.
+- Add UI components in-game to tweak parameters
+- Allow camera rotation + zoom.
